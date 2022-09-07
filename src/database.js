@@ -1,22 +1,8 @@
 const mongoose = require("mongoose");
-const URI =
-    process.env.status === "PROD"
-        ? process.env.DBURI_PROD
-        : process.env.DBURI_DEV;
-const db = mongoose.connection;
+const app = require("./app");
 
-function connect() {
-    mongoose.connect(URI, {
-        useUnifiedTopology: true,
-        useCreateIndex: true,
-        useNewUrlParser: true,
-    });
-
-    db.on("open", (_) => {
-        console.log("Database connect");
-    });
-
-    db.on("error", (error) => console.log("Error: ", error));
-}
-
-connect();
+mongoose.connect('mongodb+srv://kevin:aleida22@kev01.c5jgwia.mongodb.net/kev01')
+let port = process.env.PORT || 8080;
+app.listen(port, () => {
+	console.log('Server started on' + port)
+})

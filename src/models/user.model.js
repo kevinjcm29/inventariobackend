@@ -16,11 +16,6 @@ const userSchema = new Schema({
         type: String,
         required: true,
     },
-    name: String,
-    rol: {
-        type: Object,
-        required: true,
-    },
     create_at: {
         type: Date,
         default: new Date(),

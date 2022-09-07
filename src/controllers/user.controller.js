@@ -1,7 +1,10 @@
 const userMethods = {};
 require("dotenv").config();
 const User = require("../models/user.model");
+const Rol = require("../models/rol.model");
 const jwt = require("jsonwebtoken");
+const bcrypt = require('bcryptjs')
+
 
 async function getUser(param) {
     try {
@@ -12,77 +15,77 @@ async function getUser(param) {
 }
 
 userMethods.login = async (req, res) => {
-    const { email, password } = req.body;
-    const user = await getUser({ email });
-    if (user) {
-        const verifyPassword = await user.verifyPassword(password);
-        if (!verifyPassword) {
-            return res.status(400).json({
-                status: false,
-                message: "Email or password incorrect.",
-            });
-        }
+   const user = await User.findOne({
+		email: req.body.email,
+	})
 
-        try {
-            const token = jwt.sign(
-                user._id.toString(),
-                process.env.PRIVATE_KEY
-            );
+	if (!user) {
+		return { status: 'error', error: 'Invalid login' }
+	}
 
-            return res.status(200).json({
-                status: true,
-                token,
-                message: "Login correct.",
-            });
-        } catch (error) {
-            return res.status(400).json({
-                status: false,
-                message: "There was a problem, please try again.",
-            });
-        }
-    } else {
-        return res.status(400).json({
-            status: false,
-            message: "Email or password incorrect.",
-        });
-    }
+	const isPasswordValid = await bcrypt.compare(
+		req.body.password,
+		user.password
+	)
+
+	if (isPasswordValid) {
+		const token = jwt.sign(
+			{
+				name: user.name,
+				email: user.email,
+			},
+			'secret123'
+		)
+
+        const username = user.username;
+
+		return res.json({ status: 'ok', user: token, username: username })
+	} else {
+		return res.json({ status: 'error', user: false })
+	}
 };
 
 userMethods.register = async (req, res) => {
-    const { username, email, password, name } = req.body;
+    const { username, email, password } = req.body;
     if (username && email && password) {
-        const verifyUsername = await getUser({ username });
-        if (verifyUsername) {
-            return res.status(400).json({
-                status: false,
-                message: "The username has already taken",
-            });
-        }
-        const verifyEmail = await getUser({ email });
-        if (verifyEmail) {
-            return res.status(400).json({
-                status: false,
-                message: "The email has already taken",
-            });
-        }
+        try {
+                const verifyUsername = await getUser({ username });
+                if (verifyUsername) {
+                    return res.status(400).json({
+                        status: false,
+                        message: "The username has already taken",
+                    });
+                }
+                const verifyEmail = await getUser({ email });
+                if (verifyEmail) {
+                    return res.status(400).json({
+                        status: false,
+                        message: "The email has already taken",
+                    });
+                }
 
-        const user = new User({
-            username,
-            email,
-            password,
-            name,
-        });
-        user.password = await user.encryptPassword(user.password);
+                const user = new User({
+                    username,
+                    email,
+                    password,
+                });
+                user.password = await user.encryptPassword(user.password);
 
-        if (await user.save()) {
-            return res.status(200).json({
-                status: true,
-                message: "User created successfull.",
-            });
-        } else {
+                if (await user.save()) {
+                    return res.status(200).json({
+                        status: true,
+                        message: "User created successfull.",
+                    });
+                } else {
+                    return res.status(400).json({
+                        status: false,
+                        message: "There was a problem, please try again.",
+                    });
+                }
+        } catch (error) {
             return res.status(400).json({
                 status: false,
-                message: "There was a problem, please try again.",
+                message: "There was an error, please try again",
             });
         }
     } else {
@@ -95,10 +98,9 @@ userMethods.register = async (req, res) => {
 
 userMethods.authenticate = (req, res) => {
     try {
-        const token = req.headers["authorization"];
+        const token = req.headers['x-access-token'];
         if (token) {
-            const verify = jwt.verify(token, process.env.PRIVATE_KEY);
-            if (verify) {
+            if (token) {
                 return res.status(200).json({
                     status: true,
                     message: "The token is correct.",

@@ -7,8 +7,8 @@ const {
 } = require("../controllers/user.controller");
 
 router
-    .get("/authenticate", authenticate)
-    .post("/login", login)
-    .post("/register", register);
+    .get("/api/authenticate", authenticate)
+    .post("/api/login", login)
+    .post("/api/register", register);
 
 module.exports = router;
